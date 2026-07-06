@@ -15,9 +15,12 @@ internal sealed class TrayApp : ApplicationContext
     private readonly ToolStripMenuItem _toggleItem;
     private readonly ToolStripMenuItem _settingsItem;
     private readonly ToolStripMenuItem _refreshIntervalItem;
+    private readonly ToolStripMenuItem _languageItem;
     private readonly ToolStripMenuItem _autoStartItem;
     private readonly ToolStripMenuItem _logToFileItem;
+    private readonly ToolStripMenuItem _exitItem;
     private readonly List<ToolStripMenuItem> _refreshIntervalChoices = new();
+    private readonly List<ToolStripMenuItem> _languageChoices = new();
 
     /// <summary>
     /// 메뉴가 열려 있는 동안 카운트다운 텍스트를 실시간으로 갱신하기 위한 타이머.
@@ -28,25 +31,26 @@ internal sealed class TrayApp : ApplicationContext
     {
         _blocker = new WatermarkBlocker();
 
-        _statusItem      = new ToolStripMenuItem("상태 확인 중...")  { Enabled = false };
-        _nextRefreshItem = new ToolStripMenuItem("다음 갱신: 계산 중") { Enabled = false };
+        _statusItem      = new ToolStripMenuItem { Enabled = false };
+        _nextRefreshItem = new ToolStripMenuItem { Enabled = false };
         _toggleItem      = new ToolStripMenuItem("", null, OnToggleClick);
 
         _refreshIntervalItem = BuildRefreshIntervalMenu();
-        _autoStartItem = new ToolStripMenuItem("Windows 시작 시 자동 실행", null, OnAutoStartClick)
+        _languageItem        = BuildLanguageMenu();
+        _autoStartItem       = new ToolStripMenuItem("", null, OnAutoStartClick)
         {
-            Checked     = AutoStartManager.IsEnabled(),
-            ToolTipText = "켜두면 부팅 시 자동 실행되어 워터마크를 차단합니다.",
+            Checked = AutoStartManager.IsEnabled(),
         };
-        _logToFileItem = new ToolStripMenuItem("동작 로그 파일 기록", null, OnToggleLogToFile)
+        _logToFileItem = new ToolStripMenuItem("", null, OnToggleLogToFile)
         {
-            Checked     = Settings.LogToFile,
-            ToolTipText = "%LOCALAPPDATA%\\WatermarkRemover\\log.txt 에 기록합니다.",
+            Checked = Settings.LogToFile,
         };
+        _exitItem = new ToolStripMenuItem("", null, OnExitClick);
 
-        _settingsItem = new ToolStripMenuItem("⚙ 설정");
+        _settingsItem = new ToolStripMenuItem();
         ApplyDropDownAppearance(_settingsItem);
         _settingsItem.DropDownItems.Add(_refreshIntervalItem);
+        _settingsItem.DropDownItems.Add(_languageItem);
         _settingsItem.DropDownItems.Add(new ToolStripSeparator());
         _settingsItem.DropDownItems.Add(_autoStartItem);
         _settingsItem.DropDownItems.Add(_logToFileItem);
@@ -64,7 +68,7 @@ internal sealed class TrayApp : ApplicationContext
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_settingsItem);
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(new ToolStripMenuItem("종료", null, OnExitClick));
+        menu.Items.Add(_exitItem);
 
         // 아이템 패딩
         ApplyMenuItemPadding(menu);
@@ -90,10 +94,12 @@ internal sealed class TrayApp : ApplicationContext
         _trayIcon = new NotifyIcon
         {
             Icon             = CreateIcon(),
-            Text             = "Watermark Remover",
+            Text             = Localization.T("app.name"),
             ContextMenuStrip = menu,
             Visible          = true,
         };
+
+        ApplyStaticTexts();
 
         // 생성자 직후 곧바로 무거운 작업을 시키지 않기 위한 지연 시작.
         var startTimer = new System.Windows.Forms.Timer { Interval = 100 };
@@ -108,17 +114,29 @@ internal sealed class TrayApp : ApplicationContext
 
     private ToolStripMenuItem BuildRefreshIntervalMenu()
     {
-        var root = new ToolStripMenuItem("갱신 주기");
-        int current = Settings.RefreshIntervalMinutes;
+        var root = new ToolStripMenuItem();
 
         foreach (int minutes in RefreshIntervalPresetsMinutes)
         {
             int captured = minutes;
-            var item = new ToolStripMenuItem(FormatMinutes(minutes), null, (_, _) => OnRefreshIntervalSelected(captured))
-            {
-                Checked = (minutes == current),
-            };
+            var item = new ToolStripMenuItem(FormatMinutes(minutes), null, (_, _) => OnRefreshIntervalSelected(captured));
             _refreshIntervalChoices.Add(item);
+            root.DropDownItems.Add(item);
+        }
+        ApplyDropDownAppearance(root);
+        return root;
+    }
+
+    private ToolStripMenuItem BuildLanguageMenu()
+    {
+        var root = new ToolStripMenuItem();
+
+        foreach (var (code, name) in Localization.Available)
+        {
+            string captured = code;
+            // 언어 이름은 각 언어 고유 표기라 번역하지 않는다.
+            var item = new ToolStripMenuItem(name, null, (_, _) => OnLanguageSelected(captured));
+            _languageChoices.Add(item);
             root.DropDownItems.Add(item);
         }
         ApplyDropDownAppearance(root);
@@ -146,8 +164,8 @@ internal sealed class TrayApp : ApplicationContext
     private static string FormatMinutes(int minutes)
     {
         if (minutes >= 60)
-            return $"{minutes / 60}시간";
-        return $"{minutes}분";
+            return Localization.T("unit.hours", minutes / 60);
+        return Localization.T("unit.minutes", minutes);
     }
 
     private static void ApplyMenuItemPadding(ToolStrip menu)
@@ -162,6 +180,30 @@ internal sealed class TrayApp : ApplicationContext
         }
     }
 
+    /// <summary>
+    /// 언어에 따라 바뀌는 정적 라벨/툴팁을 일괄 적용. 생성자 및 언어 변경 시 호출.
+    /// </summary>
+    private void ApplyStaticTexts()
+    {
+        _statusItem.Text      = Localization.T("status.loading");
+        _nextRefreshItem.Text = Localization.T("nextRefresh.calculating");
+
+        _settingsItem.Text        = Localization.T("menu.settings");
+        _refreshIntervalItem.Text = Localization.T("menu.refreshInterval");
+        _languageItem.Text        = Localization.T("menu.language");
+
+        _autoStartItem.Text        = Localization.T("menu.autoStart");
+        _autoStartItem.ToolTipText = Localization.T("menu.autoStart.tooltip");
+        _logToFileItem.Text        = Localization.T("menu.logToFile");
+        _logToFileItem.ToolTipText = Localization.T("menu.logToFile.tooltip");
+        _exitItem.Text             = Localization.T("menu.exit");
+
+        for (int i = 0; i < RefreshIntervalPresetsMinutes.Length; i++)
+            _refreshIntervalChoices[i].Text = FormatMinutes(RefreshIntervalPresetsMinutes[i]);
+
+        _trayIcon.Text = Localization.T("app.name");
+    }
+
     private void RefreshMenuState()
     {
         var svcStopped = _blocker.IsServiceStopped();
@@ -169,21 +211,21 @@ internal sealed class TrayApp : ApplicationContext
 
         if (svcStopped && wantsBlock)
         {
-            _statusItem.Text = "✅ 워터마크 차단 중";
+            _statusItem.Text = Localization.T("status.blocking");
             _statusItem.Tag  = ModernMenuRenderer.StatusGreen;
-            _toggleItem.Text = "워터마크 차단 해제";
+            _toggleItem.Text = Localization.T("toggle.unblock");
         }
         else if (svcStopped && !wantsBlock)
         {
-            _statusItem.Text = "⏳ 재시작 후 차단 해제 예정";
+            _statusItem.Text = Localization.T("status.unblockPending");
             _statusItem.Tag  = ModernMenuRenderer.StatusYellow;
-            _toggleItem.Text = "워터마크 다시 차단";
+            _toggleItem.Text = Localization.T("toggle.reblock");
         }
         else
         {
-            _statusItem.Text = "⚠ 차단 해제됨";
+            _statusItem.Text = Localization.T("status.unblocked");
             _statusItem.Tag  = ModernMenuRenderer.StatusOrange;
-            _toggleItem.Text = "워터마크 다시 차단";
+            _toggleItem.Text = Localization.T("toggle.reblock");
         }
 
         UpdateCountdownText();
@@ -192,6 +234,7 @@ internal sealed class TrayApp : ApplicationContext
         // 설정 항목 체크 상태 동기화 (외부에서 레지스트리가 변경됐을 가능성 대비)
         _logToFileItem.Checked = Settings.LogToFile;
         SyncRefreshIntervalChecks();
+        SyncLanguageChecks();
     }
 
     /// <summary>
@@ -205,7 +248,7 @@ internal sealed class TrayApp : ApplicationContext
 
         int minutes = (int)remaining.TotalMinutes;
         int seconds = remaining.Seconds;
-        _nextRefreshItem.Text = $"다음 갱신: {minutes}분 {seconds}초 후";
+        _nextRefreshItem.Text = Localization.T("nextRefresh.format", minutes, seconds);
     }
 
     private void SyncRefreshIntervalChecks()
@@ -215,11 +258,25 @@ internal sealed class TrayApp : ApplicationContext
             _refreshIntervalChoices[i].Checked = (RefreshIntervalPresetsMinutes[i] == current);
     }
 
+    private void SyncLanguageChecks()
+    {
+        for (int i = 0; i < Localization.Available.Length; i++)
+            _languageChoices[i].Checked = (Localization.Available[i].Code == Localization.CurrentLanguage);
+    }
+
     private void OnRefreshIntervalSelected(int minutes)
     {
         Settings.RefreshIntervalMinutes = minutes;
         _blocker.OnRefreshIntervalChanged();
         SyncRefreshIntervalChecks();
+    }
+
+    private void OnLanguageSelected(string code)
+    {
+        Settings.Language = code;
+        Localization.Load(code);
+        SyncLanguageChecks();
+        ApplyStaticTexts();
     }
 
     private void OnToggleLogToFile(object? sender, EventArgs e)
@@ -233,26 +290,38 @@ internal sealed class TrayApp : ApplicationContext
         if (_blocker.BlockingEnabled)
         {
             var result = _blocker.DisableBlocking();
-            if (result == "RESTART_REQUIRED")
+            switch (result)
             {
-                var answer = MessageBox.Show(
-                    "차단 해제는 재시작 후 적용됩니다.\n지금 재시작하시겠습니까?",
-                    "Watermark Remover",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Question);
-                if (answer == DialogResult.Yes)
-                    Process.Start(new ProcessStartInfo("shutdown.exe", "/r /t 0") { UseShellExecute = false });
-            }
-            else
-            {
-                MessageBox.Show(result, "Watermark Remover", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                case UnblockResult.RestartRequired:
+                    var answer = MessageBox.Show(
+                        Localization.T("msg.restartPrompt"),
+                        Localization.T("app.name"),
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Question);
+                    if (answer == DialogResult.Yes)
+                        Process.Start(new ProcessStartInfo("shutdown.exe", "/r /t 0") { UseShellExecute = false });
+                    break;
+
+                case UnblockResult.NeedAdmin:
+                    MessageBox.Show(Localization.T("msg.needAdmin"), Localization.T("app.name"),
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    break;
+
+                case UnblockResult.Done:
+                    MessageBox.Show(Localization.T("msg.unblockDone"), Localization.T("app.name"),
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    break;
+
+                default:
+                    Logger.Error($"Unhandled UnblockResult: {result}");
+                    break;
             }
             return;
         }
 
         _blocker.EnableBlocking();
-        MessageBox.Show("워터마크 차단이 다시 활성화됐습니다.",
-            "Watermark Remover", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        MessageBox.Show(Localization.T("msg.reblocked"), Localization.T("app.name"),
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private void OnAutoStartClick(object? sender, EventArgs e)

@@ -6,6 +6,14 @@ using Microsoft.Win32;
 
 namespace WatermarkRemover;
 
+/// <summary>차단 해제 시도 결과. UI 계층이 이 값을 사용자 메시지로 변환한다.</summary>
+internal enum UnblockResult
+{
+    Done,            // 즉시 해제 완료
+    RestartRequired, // 재시작 후 반영
+    NeedAdmin,       // 관리자 권한 없음
+}
+
 /// <summary>
 /// Windows 정품 인증 워터마크 차단기.
 /// 두 가지 전략을 병행한다:
@@ -161,9 +169,9 @@ internal sealed class WatermarkBlocker : IDisposable
         TryHideWatermarkWindow();
     }
 
-    public string DisableBlocking()
+    public UnblockResult DisableBlocking()
     {
-        if (!IsAdmin) return "관리자 권한 필요";
+        if (!IsAdmin) return UnblockResult.NeedAdmin;
 
         // 사용자 의도 저장: 차단 해제
         BlockingEnabled = false;
@@ -193,7 +201,7 @@ internal sealed class WatermarkBlocker : IDisposable
             sc.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(5));
             sc.Refresh();
             if (sc.Status == ServiceControllerStatus.Running)
-                return "차단 해제 완료\n워터마크가 다시 나타날 수 있습니다.";
+                return UnblockResult.Done;
         }
         catch (Exception ex)
         {
@@ -215,14 +223,14 @@ internal sealed class WatermarkBlocker : IDisposable
             using var sc2 = new ServiceController("sppsvc");
             sc2.Refresh();
             if (sc2.Status == ServiceControllerStatus.Running)
-                return "차단 해제 완료\n워터마크가 다시 나타날 수 있습니다.";
+                return UnblockResult.Done;
         }
         catch (Exception ex)
         {
             Logger.Warn($"sc.exe start failed: {ex.Message}");
         }
 
-        return "RESTART_REQUIRED";
+        return UnblockResult.RestartRequired;
     }
 
     public void EnableBlocking()

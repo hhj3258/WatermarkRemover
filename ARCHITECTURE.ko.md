@@ -20,6 +20,7 @@ Windows 정품 인증 워터마크를 제거하는 트레이 유틸리티로, **
 | 설정 저장 | 레지스트리 `HKCU\SOFTWARE\WatermarkRemover` | 외부 설정 파일 없이 재설치에도 유지되고 읽고 쓰기 간단 |
 | 자동 시작 | 작업 스케줄러 (`schtasks`) | 일반 Run 키로는 권한 상승 불가. 작업 스케줄러로 로그온 시 관리자 권한 실행 |
 | 렌더링 | 커스텀 `ToolStripRenderer` | 기본 렌더러로는 불가능한 다크 테마 + 라운드 코너(`DwmSetWindowAttribute`) 구현 |
+| 다국어 | 언어별 JSON(내장) | UI 문자열을 `Locales/*.json`에 두고 런타임에 키로 로드 — 사용자 문자열 하드코딩 없음. 기본 언어: 영어 |
 
 ---
 
@@ -37,6 +38,8 @@ WatermarkRemover/
     ├── Settings.cs              # 사용자 설정 (레지스트리 기반)
     ├── AutoStartManager.cs      # 작업 스케줄러 등록/해제
     ├── ModernMenuRenderer.cs    # 다크 테마 메뉴 렌더러
+    ├── Localization.cs          # 언어별 문자열을 내장 JSON에서 로드
+    ├── Locales/                 # en.json / ko.json (리소스로 내장)
     ├── Logger.cs                # 선택적 파일 로거 (%LOCALAPPDATA%\WatermarkRemover\log.txt)
     ├── NativeMethods.cs         # Win32 P/Invoke 선언
     ├── Utils.cs                 # 검증 유틸리티
@@ -110,7 +113,7 @@ TrayApp (ApplicationContext)
 
 ### 영속성
 
-모든 사용자 설정은 `HKCU\SOFTWARE\WatermarkRemover` 아래에 저장됩니다 (`BlockingEnabled`, `RefreshIntervalMinutes`, `LogToFile`). `BlockingEnabled`는 매 실행 시작 시 `true`로 강제되므로, 차단 해제는 해당 실행 동안만 유효합니다. 선택적 동작 로그는 `%LOCALAPPDATA%\WatermarkRemover\log.txt`에 기록되며 `LogToFile` 값으로 제어됩니다 (꺼져 있으면 비용 0).
+모든 사용자 설정은 `HKCU\SOFTWARE\WatermarkRemover` 아래에 저장됩니다 (`BlockingEnabled`, `RefreshIntervalMinutes`, `LogToFile`, `Language`, `AutoStartInitialized`). `BlockingEnabled`는 매 실행 시작 시 `true`로 강제되므로, 차단 해제는 해당 실행 동안만 유효합니다. 최초 실행 시에는 자동 시작이 기본으로 등록되며(`AutoStartInitialized`로 추적해, 이후 사용자가 직접 끈 경우는 존중), 선택적 동작 로그는 `%LOCALAPPDATA%\WatermarkRemover\log.txt`에 기록되며 `LogToFile` 값으로 제어됩니다 (꺼져 있으면 비용 0).
 
 ### 타이머
 

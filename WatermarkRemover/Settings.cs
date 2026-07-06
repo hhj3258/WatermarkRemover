@@ -13,8 +13,11 @@ internal static class Settings
     private const string KeyBlockingEnabled       = "BlockingEnabled";
     private const string KeyRefreshIntervalMin    = "RefreshIntervalMinutes";
     private const string KeyLogToFile             = "LogToFile";
+    private const string KeyLanguage              = "Language";
+    private const string KeyAutoStartInitialized  = "AutoStartInitialized";
 
     private const int DefaultRefreshIntervalMin = 5;
+    private const string DefaultLanguage = "en";
 
     /// <summary>
     /// 사용자 의도: 워터마크 차단 활성 여부. 재시작 후에도 유지.
@@ -47,6 +50,25 @@ internal static class Settings
         set => WriteInt(KeyLogToFile, value ? 1 : 0);
     }
 
+    /// <summary>
+    /// UI 언어 코드 (예: "en", "ko"). 기본 영어.
+    /// </summary>
+    public static string Language
+    {
+        get => ReadString(KeyLanguage, DefaultLanguage);
+        set => WriteString(KeyLanguage, value);
+    }
+
+    /// <summary>
+    /// 자동 시작을 최초 1회 기본값(켜짐)으로 등록했는지 여부.
+    /// 사용자가 이후 직접 끈 경우 다시 켜지 않도록 하는 플래그.
+    /// </summary>
+    public static bool AutoStartInitialized
+    {
+        get => ReadInt(KeyAutoStartInitialized, 0) != 0;
+        set => WriteInt(KeyAutoStartInitialized, value ? 1 : 0);
+    }
+
     private static int ReadInt(string name, int defaultValue)
     {
         try
@@ -67,11 +89,37 @@ internal static class Settings
         {
             using var key = Registry.CurrentUser.CreateSubKey(KeyPath, true);
             key.SetValue(name, value, RegistryValueKind.DWord);
-            Logger.Info($"Settings.WriteInt({name}={value}) by:\n{new System.Diagnostics.StackTrace(2, false)}");
         }
         catch (Exception ex)
         {
             Logger.Warn($"Settings.WriteInt({name}) failed: {ex.Message}");
+        }
+    }
+
+    private static string ReadString(string name, string defaultValue)
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(KeyPath, false);
+            return key?.GetValue(name) as string ?? defaultValue;
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"Settings.ReadString({name}) failed: {ex.Message}");
+            return defaultValue;
+        }
+    }
+
+    private static void WriteString(string name, string value)
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.CreateSubKey(KeyPath, true);
+            key.SetValue(name, value, RegistryValueKind.String);
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"Settings.WriteString({name}) failed: {ex.Message}");
         }
     }
 }

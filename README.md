@@ -57,7 +57,8 @@ Right-click the tray icon:
 - **Unblock / Re-block watermark** — toggle
 - **⚙ Settings**
   - **Refresh interval** — how often the watermark is re-checked (1 / 5 / 10 / 30 / 60 minutes)
-  - **Run at Windows startup** — registers a scheduled task (runs elevated at logon). When on, boot → auto-launch → watermark blocked, hands-free.
+  - **Language** — English / 한국어 (default: English)
+  - **Run at Windows startup** — registers a scheduled task (runs elevated at logon). Enabled by default on first run, so boot → auto-launch → watermark blocked, hands-free.
   - **Write action log to file** — logs to `%LOCALAPPDATA%\WatermarkRemover\log.txt` (for debugging)
 - **Exit**
 

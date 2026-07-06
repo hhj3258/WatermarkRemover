@@ -17,4 +17,9 @@
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="8.0.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- 언어별 문자열을 단일 exe에 내장 -->
+    <EmbeddedResource Include="Locales\*.json" />
+  </ItemGroup>
+
 </Project>

@@ -20,6 +20,7 @@ A Windows tray utility that removes the "Activate Windows" watermark by **disabl
 | Settings storage | Registry `HKCU\SOFTWARE\WatermarkRemover` | No external config file; survives reinstalls and is trivial to read/write |
 | Auto-start | Task Scheduler (`schtasks`) | A plain Run key cannot request elevation; a scheduled task runs the app elevated at logon |
 | Rendering | Custom `ToolStripRenderer` | Dark theme + rounded corners (`DwmSetWindowAttribute`) that the default renderer can't produce |
+| Localization | Per-language JSON (embedded) | UI strings live in `Locales/*.json`, loaded by key at runtime — no hardcoded user text. Default language: English |
 
 ---
 
@@ -37,6 +38,8 @@ WatermarkRemover/
     ├── Settings.cs              # User settings (registry-backed)
     ├── AutoStartManager.cs      # Scheduled-task register/unregister
     ├── ModernMenuRenderer.cs    # Dark-theme menu renderer
+    ├── Localization.cs          # Loads per-language strings from embedded JSON
+    ├── Locales/                 # en.json / ko.json (embedded as resources)
     ├── Logger.cs                # Opt-in file logger (%LOCALAPPDATA%\WatermarkRemover\log.txt)
     ├── NativeMethods.cs         # Win32 P/Invoke declarations
     ├── Utils.cs                 # Validation helpers
@@ -110,7 +113,7 @@ The tray status is derived from the pair: intent-on + service-stopped = "Blockin
 
 ### Persistence
 
-All user settings live under `HKCU\SOFTWARE\WatermarkRemover` (`BlockingEnabled`, `RefreshIntervalMinutes`, `LogToFile`). `BlockingEnabled` is forced to `true` at every startup, so unblocking only lasts for the current run. The optional action log is written to `%LOCALAPPDATA%\WatermarkRemover\log.txt` and is gated by the `LogToFile` value (zero cost when off).
+All user settings live under `HKCU\SOFTWARE\WatermarkRemover` (`BlockingEnabled`, `RefreshIntervalMinutes`, `LogToFile`, `Language`, `AutoStartInitialized`). `BlockingEnabled` is forced to `true` at every startup, so unblocking only lasts for the current run. On the very first run, auto-start is registered by default (tracked by `AutoStartInitialized` so a later manual opt-out is respected). The optional action log is written to `%LOCALAPPDATA%\WatermarkRemover\log.txt` and is gated by the `LogToFile` value (zero cost when off).
 
 ### Timers
 
