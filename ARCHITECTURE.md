@@ -1,4 +1,6 @@
-# WatermarkRemover — Project Overview
+# WatermarkRemover — Architecture
+
+This document describes how WatermarkRemover works internally. For installation and usage, see the [README](README.md).
 
 ## 1. Summary
 
@@ -74,7 +76,51 @@ The tray menu recomputes its state (status text, countdown, checkmarks) on every
 
 ---
 
-## 5. Technical Challenges Solved
+## 5. How It Works in Detail
+
+### Two blocking strategies
+
+**Strategy 1 — Disabling protection services.**
+`sppsvc`, `sppamsvc`, and `svsvc` are the services responsible for the activation state and its watermark. For each one, `WatermarkBlocker` writes registry `Start=4` (disabled) under `HKLM\SYSTEM\CurrentControlSet\Services\<name>` and calls `ServiceController.Stop()`. Writing the registry value is what makes the block **persist across reboots** — stopping the running service alone is undone on the next boot. When a service is actually stopped, Explorer is restarted so the desktop is repainted without the watermark. This path requires administrator rights (`IsAdmin` gate); without them the app falls back to Strategy 2 only.
+
+**Strategy 2 — Real-time watermark hiding.**
+The watermark is painted inside a top-level window of class `Worker Window`. Two mechanisms keep it hidden:
+
+- **Event hook (primary).** `SetWinEventHook` subscribes to `EVENT_OBJECT_CREATE` and `EVENT_OBJECT_SHOW`. On every matching event the callback reads the window's class name and, if it is `Worker Window`, calls `ShowWindow(hwnd, SW_HIDE)`. The `WINEVENT_SKIPOWNPROCESS` flag excludes the app's own windows to keep the callback cheap. This is what defeats the fullscreen-game flicker: the window is hidden within milliseconds of being recreated.
+
+  ```csharp
+  _winEventHook = NativeMethods.SetWinEventHook(
+      EVENT_OBJECT_CREATE, EVENT_OBJECT_SHOW, IntPtr.Zero,
+      _winEventDelegate, 0, 0,
+      WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS);
+  ```
+
+- **Polling (fallback).** A `System.Windows.Forms.Timer` (default 5 minutes, configurable) periodically calls `FindWindow("Worker Window", null)` and hides it, in case the hook ever misses an event.
+
+### State model: intent vs. service state
+
+Two separate booleans drive the UI and behavior, and conflating them was the source of an early toggle bug:
+
+- **`Settings.BlockingEnabled`** — the *user's intent* (do they want blocking on?). Persisted in the registry, survives restarts.
+- **`WatermarkBlocker.IsServiceStopped()`** — the *observed* state of `sppsvc` (is the service currently stopped?).
+
+The tray status is derived from the pair: intent-on + service-stopped = "Blocking"; intent-off + service-stopped = "Unblock pending restart"; service-running = "Unblocked".
+
+### Persistence
+
+All user settings live under `HKCU\SOFTWARE\WatermarkRemover` (`BlockingEnabled`, `RefreshIntervalMinutes`, `AutoEnableOnStart`, `LogToFile`). The optional action log is written to `%LOCALAPPDATA%\WatermarkRemover\log.txt` and is gated by the `LogToFile` value (zero cost when off).
+
+### Timers
+
+| Timer | Default interval | Purpose |
+|-------|------------------|---------|
+| Service recheck | 1 hour | Re-apply the block in case Windows Update re-enabled a service |
+| Watermark refresh | 5 min (configurable) | Polling fallback to re-hide the window |
+| Countdown | 500 ms (menu open only) | Live-update the "next refresh" countdown text |
+
+---
+
+## 6. Technical Challenges Solved
 
 **1. Watermark reappearing after reboot**
 
@@ -98,7 +144,7 @@ The dark rounded menu showed a 1–2 px white sliver at the top. Caused by the d
 
 ---
 
-## 6. Security & Design Notes
+## 7. Security & Design Notes
 
 - **Local only** — the app talks to no external server. All actions are local service/registry/window operations.
 - **No credentials, no telemetry** — nothing is collected or transmitted. The optional file log stays under `%LOCALAPPDATA%`.
@@ -107,7 +153,7 @@ The dark rounded menu showed a 1–2 px white sliver at the top. Caused by the d
 
 ---
 
-## 7. Deployment
+## 8. Deployment
 
 `build.ps1` is the single entry point for releasing a version:
 
@@ -121,7 +167,7 @@ GitHub releases attach the built `WatermarkRemover.exe` directly, so a second ma
 
 ---
 
-## 8. AI-Assisted Development
+## 9. AI-Assisted Development
 
 This project was built and iterated through AI-assisted sessions (Claude Code) with direct access to the build and runtime environment.
 

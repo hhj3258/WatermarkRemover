@@ -7,6 +7,15 @@ It stays in the system tray and automatically hides the watermark whenever it ap
 
 ---
 
+## Disclaimer
+
+This project exists **purely for personal learning and study purposes**.
+It does **not** bypass or crack Windows activation — it only hides the watermark overlay and never modifies the Windows license state.
+
+If this repository is found to cause any problem or is requested to be taken down, **it will be deleted without hesitation**. Use it at your own risk.
+
+---
+
 ## Requirements
 
 - Windows 10 / 11
@@ -49,54 +58,12 @@ dotnet publish WatermarkRemover/WatermarkRemover.csproj -c Release -r win-x64 --
 
 Output: `WatermarkRemover/bin/Release/net8.0-windows/win-x64/publish/WatermarkRemover.exe`
 
-Versioned builds live under `publish/ver_*/`, each with a `CHANGES.md` describing what changed. The `build.ps1` script publishes a new version folder and updates the scheduled task in one step:
-
-```powershell
-.\build.ps1 -Version "1.1" -Changes "Change description|Reason for the change"
-```
-
----
-
-## File Structure
-
-```
-WatermarkRemover/
-├── build.ps1                    # Version-publish + Task Scheduler update script
-├── publish/
-│   └── ver_*/                   # Per-version executables + CHANGES.md
-└── WatermarkRemover/
-    ├── Program.cs               # Entry point, single-instance guard
-    ├── TrayApp.cs               # Tray icon and menu (UI)
-    ├── WatermarkBlocker.cs      # Core blocking logic (service control + window hook)
-    ├── Settings.cs              # User settings (registry HKCU\SOFTWARE\WatermarkRemover)
-    ├── AutoStartManager.cs      # Task Scheduler based auto-start
-    ├── ModernMenuRenderer.cs    # Dark-theme menu renderer
-    ├── Logger.cs                # File logger
-    ├── NativeMethods.cs         # Win32 P/Invoke
-    ├── Utils.cs                 # Validation helpers
-    └── app.ico                  # Application icon (blue background, white W)
-```
+`build.ps1` publishes a versioned build under `publish/ver_*/` and updates the scheduled task in one step.
 
 ---
 
 ## How It Works
 
-Two strategies run in parallel.
+Two strategies run in parallel: disabling the Windows software-protection services, and hiding the watermark window in real time via a Win32 event hook.
 
-### 1. Disabling protection services
-The `sppsvc` / `sppamsvc` / `svsvc` services are stopped and set to disabled, which prevents the watermark from being rendered in the first place. This requires administrator privileges.
-
-### 2. Real-time watermark hiding
-Windows draws the watermark inside a window of class `Worker Window`. The app watches for it and hides it the moment it appears.
-
-- **Event hook** — `SetWinEventHook` subscribes to window create/show events. When a `Worker Window` is (re)created — for example after switching in and out of a fullscreen game — it is hidden within a few milliseconds.
-- **Polling fallback** — a periodic timer (default 5 minutes, adjustable in Settings) also re-hides the window, in case the hook ever misses an event.
-
-### Auto-start
-"Run at Windows startup" registers a Task Scheduler task that runs the app **elevated at logon** (a plain registry Run key cannot request elevation, so a scheduled task is used instead).
-
----
-
-## Notes
-
-This tool is for personal, educational, and convenience purposes. It does **not** bypass Windows activation — it only hides the watermark overlay and does not change the license state itself.
+**See [ARCHITECTURE.md](ARCHITECTURE.md) for the detailed operating principles, project structure, and design notes.**

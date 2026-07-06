@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Drawing.Drawing2D;
 
 namespace WatermarkRemover;
 
@@ -282,12 +283,27 @@ internal sealed class TrayApp : ApplicationContext
 
     private static Icon CreateIcon()
     {
-        var bmp = new Bitmap(16, 16);
+        const int size = 16;
+        var bmp = new Bitmap(size, size);
         using (var g = Graphics.FromImage(bmp))
         {
+            g.SmoothingMode = SmoothingMode.AntiAlias;
             g.Clear(Color.FromArgb(30, 120, 220));
-            using var font = new Font("Arial", 8f, FontStyle.Bold);
-            g.DrawString("W", font, Brushes.White, 1f, 1f);
+
+            // 글자의 실제 경계(bounding box) 기준으로 정확히 중앙 정렬
+            using var path = new GraphicsPath();
+            using var family = new FontFamily("Arial");
+            path.AddString("W", family, (int)FontStyle.Bold, size * 0.72f,
+                new PointF(0, 0), StringFormat.GenericDefault);
+
+            var b = path.GetBounds();
+            float mx = (size - b.Width) / 2f - b.X;
+            float my = (size - b.Height) / 2f - b.Y;
+            using var mat = new Matrix();
+            mat.Translate(mx, my);
+            path.Transform(mat);
+
+            g.FillPath(Brushes.White, path);
         }
         return Icon.FromHandle(bmp.GetHicon());
     }
