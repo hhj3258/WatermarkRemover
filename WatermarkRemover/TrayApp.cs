@@ -16,7 +16,6 @@ internal sealed class TrayApp : ApplicationContext
     private readonly ToolStripMenuItem _settingsItem;
     private readonly ToolStripMenuItem _refreshIntervalItem;
     private readonly ToolStripMenuItem _autoStartItem;
-    private readonly ToolStripMenuItem _autoEnableOnStartItem;
     private readonly ToolStripMenuItem _logToFileItem;
     private readonly List<ToolStripMenuItem> _refreshIntervalChoices = new();
 
@@ -36,12 +35,8 @@ internal sealed class TrayApp : ApplicationContext
         _refreshIntervalItem = BuildRefreshIntervalMenu();
         _autoStartItem = new ToolStripMenuItem("Windows 시작 시 자동 실행", null, OnAutoStartClick)
         {
-            Checked = AutoStartManager.IsEnabled(),
-        };
-        _autoEnableOnStartItem = new ToolStripMenuItem("시작 시 자동 차단", null, OnToggleAutoEnableOnStart)
-        {
-            Checked     = Settings.AutoEnableOnStart,
-            ToolTipText = "켜져 있으면 부팅 후 항상 차단 상태로 시작합니다.",
+            Checked     = AutoStartManager.IsEnabled(),
+            ToolTipText = "켜두면 부팅 시 자동 실행되어 워터마크를 차단합니다.",
         };
         _logToFileItem = new ToolStripMenuItem("동작 로그 파일 기록", null, OnToggleLogToFile)
         {
@@ -54,7 +49,6 @@ internal sealed class TrayApp : ApplicationContext
         _settingsItem.DropDownItems.Add(_refreshIntervalItem);
         _settingsItem.DropDownItems.Add(new ToolStripSeparator());
         _settingsItem.DropDownItems.Add(_autoStartItem);
-        _settingsItem.DropDownItems.Add(_autoEnableOnStartItem);
         _settingsItem.DropDownItems.Add(_logToFileItem);
 
         var menu = new ContextMenuStrip
@@ -196,8 +190,7 @@ internal sealed class TrayApp : ApplicationContext
         _autoStartItem.Checked = AutoStartManager.IsEnabled();
 
         // 설정 항목 체크 상태 동기화 (외부에서 레지스트리가 변경됐을 가능성 대비)
-        _autoEnableOnStartItem.Checked = Settings.AutoEnableOnStart;
-        _logToFileItem.Checked         = Settings.LogToFile;
+        _logToFileItem.Checked = Settings.LogToFile;
         SyncRefreshIntervalChecks();
     }
 
@@ -227,12 +220,6 @@ internal sealed class TrayApp : ApplicationContext
         Settings.RefreshIntervalMinutes = minutes;
         _blocker.OnRefreshIntervalChanged();
         SyncRefreshIntervalChecks();
-    }
-
-    private void OnToggleAutoEnableOnStart(object? sender, EventArgs e)
-    {
-        Settings.AutoEnableOnStart = !Settings.AutoEnableOnStart;
-        _autoEnableOnStartItem.Checked = Settings.AutoEnableOnStart;
     }
 
     private void OnToggleLogToFile(object? sender, EventArgs e)

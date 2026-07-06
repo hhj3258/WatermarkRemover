@@ -31,7 +31,7 @@ WatermarkRemover/
 ├── publish/
 │   └── ver_*/                   # Per-version executables + CHANGES.md (change history)
 └── WatermarkRemover/
-    ├── Program.cs               # Entry point, single-instance mutex, auto-block-on-start
+    ├── Program.cs               # Entry point, single-instance mutex, force-block-on-start
     ├── TrayApp.cs               # Tray icon, menu, live countdown, settings submenu
     ├── WatermarkBlocker.cs      # Core: service disabling + window hook + polling fallback
     ├── Settings.cs              # User settings (registry-backed)
@@ -52,7 +52,7 @@ WatermarkRemover/
 Program.Main
   │
   ├─ single-instance mutex (exit if already running)
-  ├─ if AutoEnableOnStart → force BlockingEnabled = true
+  ├─ force BlockingEnabled = true   (the app always blocks when it starts)
   │
   ▼
 TrayApp (ApplicationContext)
@@ -110,7 +110,7 @@ The tray status is derived from the pair: intent-on + service-stopped = "Blockin
 
 ### Persistence
 
-All user settings live under `HKCU\SOFTWARE\WatermarkRemover` (`BlockingEnabled`, `RefreshIntervalMinutes`, `AutoEnableOnStart`, `LogToFile`). The optional action log is written to `%LOCALAPPDATA%\WatermarkRemover\log.txt` and is gated by the `LogToFile` value (zero cost when off).
+All user settings live under `HKCU\SOFTWARE\WatermarkRemover` (`BlockingEnabled`, `RefreshIntervalMinutes`, `LogToFile`). `BlockingEnabled` is forced to `true` at every startup, so unblocking only lasts for the current run. The optional action log is written to `%LOCALAPPDATA%\WatermarkRemover\log.txt` and is gated by the `LogToFile` value (zero cost when off).
 
 ### Timers
 

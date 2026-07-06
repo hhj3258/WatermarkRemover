@@ -15,11 +15,11 @@ internal static class Program
             return;
         }
 
-        // 사용자가 설정 메뉴에서 "시작 시 자동 차단"을 켰다면 부팅 후 BlockingEnabled를 강제로 켠다.
-        if (Settings.AutoEnableOnStart && !Settings.BlockingEnabled)
+        // 앱이 실행되면 항상 차단 상태로 시작한다. (차단 해제는 해당 실행 동안만 유효)
+        if (!Settings.BlockingEnabled)
         {
             Settings.BlockingEnabled = true;
-            Logger.Info("BlockingEnabled forced to true on startup (AutoEnableOnStart=on)");
+            Logger.Info("BlockingEnabled forced to true on startup");
         }
 
         ApplicationConfiguration.Initialize();

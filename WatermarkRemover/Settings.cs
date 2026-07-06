@@ -12,7 +12,6 @@ internal static class Settings
 
     private const string KeyBlockingEnabled       = "BlockingEnabled";
     private const string KeyRefreshIntervalMin    = "RefreshIntervalMinutes";
-    private const string KeyAutoEnableOnStart     = "AutoEnableOnStart";
     private const string KeyLogToFile             = "LogToFile";
 
     private const int DefaultRefreshIntervalMin = 5;
@@ -37,15 +36,6 @@ internal static class Settings
             return v <= 0 ? DefaultRefreshIntervalMin : v;
         }
         set => WriteInt(KeyRefreshIntervalMin, value);
-    }
-
-    /// <summary>
-    /// 앱 시작 시 사용자 의도와 무관하게 차단을 항상 켤지 여부.
-    /// </summary>
-    public static bool AutoEnableOnStart
-    {
-        get => ReadInt(KeyAutoEnableOnStart, 0) != 0;
-        set => WriteInt(KeyAutoEnableOnStart, value ? 1 : 0);
     }
 
     /// <summary>

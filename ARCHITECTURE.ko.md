@@ -31,7 +31,7 @@ WatermarkRemover/
 ├── publish/
 │   └── ver_*/                   # 버전별 실행 파일 + CHANGES.md (변경 내역)
 └── WatermarkRemover/
-    ├── Program.cs               # 진입점, 단일 인스턴스 뮤텍스, 시작 시 자동 차단
+    ├── Program.cs               # 진입점, 단일 인스턴스 뮤텍스, 시작 시 항상 차단
     ├── TrayApp.cs               # 트레이 아이콘, 메뉴, 실시간 카운트다운, 설정 서브메뉴
     ├── WatermarkBlocker.cs      # 핵심: 서비스 비활성화 + 윈도우 후킹 + 폴링 백업
     ├── Settings.cs              # 사용자 설정 (레지스트리 기반)
@@ -52,7 +52,7 @@ WatermarkRemover/
 Program.Main
   │
   ├─ 단일 인스턴스 뮤텍스 (이미 실행 중이면 종료)
-  ├─ AutoEnableOnStart이면 → BlockingEnabled = true 강제
+  ├─ BlockingEnabled = true 강제   (앱이 실행되면 항상 차단)
   │
   ▼
 TrayApp (ApplicationContext)
@@ -110,7 +110,7 @@ TrayApp (ApplicationContext)
 
 ### 영속성
 
-모든 사용자 설정은 `HKCU\SOFTWARE\WatermarkRemover` 아래에 저장됩니다 (`BlockingEnabled`, `RefreshIntervalMinutes`, `AutoEnableOnStart`, `LogToFile`). 선택적 동작 로그는 `%LOCALAPPDATA%\WatermarkRemover\log.txt`에 기록되며 `LogToFile` 값으로 제어됩니다 (꺼져 있으면 비용 0).
+모든 사용자 설정은 `HKCU\SOFTWARE\WatermarkRemover` 아래에 저장됩니다 (`BlockingEnabled`, `RefreshIntervalMinutes`, `LogToFile`). `BlockingEnabled`는 매 실행 시작 시 `true`로 강제되므로, 차단 해제는 해당 실행 동안만 유효합니다. 선택적 동작 로그는 `%LOCALAPPDATA%\WatermarkRemover\log.txt`에 기록되며 `LogToFile` 값으로 제어됩니다 (꺼져 있으면 비용 0).
 
 ### 타이머
 
