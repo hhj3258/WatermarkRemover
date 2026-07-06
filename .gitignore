@@ -1,0 +1,16 @@
+# 빌드 산출물
+[Bb]in/
+[Oo]bj/
+*.user
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.suo
+
+# 로그
+*.log
+
+# OS
+Thumbs.db
+Desktop.ini
