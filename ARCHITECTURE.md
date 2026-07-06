@@ -1,5 +1,7 @@
 # WatermarkRemover — Architecture
 
+**Language:** English | [한국어](ARCHITECTURE.ko.md)
+
 This document describes how WatermarkRemover works internally. For installation and usage, see the [README](README.md).
 
 ## 1. Summary

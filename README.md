@@ -35,6 +35,20 @@ If this repository is found to cause any problem or is requested to be taken dow
 
 ---
 
+## "Unrecognized app" / SmartScreen warning
+
+When you run the downloaded `.exe`, Windows may show a blue **"Windows protected your PC"** (SmartScreen) dialog, or your antivirus may flag it. To run it: click **More info → Run anyway**.
+
+**Why this happens:**
+
+- **The executable is not code-signed.** Publishing a signed app requires a paid code-signing certificate, which this personal project does not have. SmartScreen shows this warning for *any* unsigned app that hasn't built up download reputation yet — it is not a sign of malware by itself.
+- **It requests administrator rights and stops system services.** Disabling `sppsvc`/`sppamsvc`/`svsvc` is exactly the kind of behavior antivirus heuristics watch for, so a false-positive flag is possible.
+- **It was downloaded from the internet.** Files carry a "Mark of the Web" tag, which makes Windows extra cautious about unrecognized publishers.
+
+If you would rather not trust the prebuilt binary, **[build it yourself from source](#build-from-source)** — the entire codebase is public in this repository.
+
+---
+
 ## Tray Menu
 
 Right-click the tray icon:
