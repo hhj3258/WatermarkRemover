@@ -1,10 +1,13 @@
 using System.Diagnostics;
 using System.Drawing.Drawing2D;
+using System.Reflection;
 
 namespace WatermarkRemover;
 
 internal sealed class TrayApp : ApplicationContext
 {
+    private const string RepositoryUrl = "https://github.com/hhj3258/WatermarkRemover";
+
     private static readonly int[] RefreshIntervalPresetsMinutes = { 1, 5, 10, 30, 60 };
 
     private readonly NotifyIcon _trayIcon;
@@ -18,6 +21,9 @@ internal sealed class TrayApp : ApplicationContext
     private readonly ToolStripMenuItem _languageItem;
     private readonly ToolStripMenuItem _autoStartItem;
     private readonly ToolStripMenuItem _logToFileItem;
+    private readonly ToolStripMenuItem _aboutItem;
+    private readonly ToolStripMenuItem _versionItem;
+    private readonly ToolStripMenuItem _repoItem;
     private readonly ToolStripMenuItem _exitItem;
     private readonly List<ToolStripMenuItem> _refreshIntervalChoices = new();
     private readonly List<ToolStripMenuItem> _languageChoices = new();
@@ -55,6 +61,14 @@ internal sealed class TrayApp : ApplicationContext
         _settingsItem.DropDownItems.Add(_autoStartItem);
         _settingsItem.DropDownItems.Add(_logToFileItem);
 
+        // About: 버전 표시(비활성) + 저장소 링크(클릭 시 브라우저)
+        _versionItem = new ToolStripMenuItem { Enabled = false };
+        _repoItem    = new ToolStripMenuItem("", null, (_, _) => OpenRepository());
+        _aboutItem   = new ToolStripMenuItem();
+        ApplyDropDownAppearance(_aboutItem);
+        _aboutItem.DropDownItems.Add(_versionItem);
+        _aboutItem.DropDownItems.Add(_repoItem);
+
         var menu = new ContextMenuStrip
         {
             Renderer  = new ModernMenuRenderer(),
@@ -67,6 +81,7 @@ internal sealed class TrayApp : ApplicationContext
         menu.Items.Add(_toggleItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_settingsItem);
+        menu.Items.Add(_aboutItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_exitItem);
 
@@ -196,7 +211,12 @@ internal sealed class TrayApp : ApplicationContext
         _autoStartItem.ToolTipText = Localization.T("menu.autoStart.tooltip");
         _logToFileItem.Text        = Localization.T("menu.logToFile");
         _logToFileItem.ToolTipText = Localization.T("menu.logToFile.tooltip");
-        _exitItem.Text             = Localization.T("menu.exit");
+
+        _aboutItem.Text   = Localization.T("menu.about");
+        _versionItem.Text = $"{Localization.T("app.name")}  v{AppVersion}";
+        _repoItem.Text    = Localization.T("about.repository");
+
+        _exitItem.Text = Localization.T("menu.exit");
 
         for (int i = 0; i < RefreshIntervalPresetsMinutes.Length; i++)
             _refreshIntervalChoices[i].Text = FormatMinutes(RefreshIntervalPresetsMinutes[i]);
@@ -335,6 +355,28 @@ internal sealed class TrayApp : ApplicationContext
         _trayIcon.Visible = false;
         _blocker.Dispose();
         Application.Exit();
+    }
+
+    private static void OpenRepository()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(RepositoryUrl) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"Open repository failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>어셈블리 버전을 "메이저.마이너.패치" 형식으로 반환.</summary>
+    private static string AppVersion
+    {
+        get
+        {
+            var v = Assembly.GetExecutingAssembly().GetName().Version;
+            return v == null ? "?" : $"{v.Major}.{v.Minor}.{v.Build}";
+        }
     }
 
     private static Icon CreateIcon()

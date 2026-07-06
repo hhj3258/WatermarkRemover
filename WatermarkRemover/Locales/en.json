@@ -15,6 +15,8 @@
   "menu.autoStart.tooltip": "When on, the app auto-runs at boot and blocks the watermark.",
   "menu.logToFile": "Write action log to file",
   "menu.logToFile.tooltip": "Logs to %LOCALAPPDATA%\\WatermarkRemover\\log.txt.",
+  "menu.about": "About",
+  "about.repository": "GitHub repository",
   "menu.exit": "Exit",
   "unit.minutes": "{0} min",
   "unit.hours": "{0} hr",

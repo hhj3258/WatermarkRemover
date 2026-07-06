@@ -60,6 +60,7 @@ Right-click the tray icon:
   - **Language** — English / 한국어 (default: English)
   - **Run at Windows startup** — registers a scheduled task (runs elevated at logon). Enabled by default on first run, so boot → auto-launch → watermark blocked, hands-free.
   - **Write action log to file** — logs to `%LOCALAPPDATA%\WatermarkRemover\log.txt` (for debugging)
+- **About** — shows the current version and a link to this repository
 - **Exit**
 
 ---
