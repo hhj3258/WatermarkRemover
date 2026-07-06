@@ -144,7 +144,8 @@ internal sealed class TrayApp : ApplicationContext
 
     private ToolStripMenuItem BuildLanguageMenu()
     {
-        var root = new ToolStripMenuItem();
+        // 지구본 아이콘: 영어를 못 읽어도 언어 설정을 바로 찾을 수 있도록.
+        var root = new ToolStripMenuItem { Image = CreateGlobeImage() };
 
         foreach (var (code, name) in Localization.Available)
         {
@@ -377,6 +378,32 @@ internal sealed class TrayApp : ApplicationContext
             var v = Assembly.GetExecutingAssembly().GetName().Version;
             return v == null ? "?" : $"{v.Major}.{v.Minor}.{v.Build}";
         }
+    }
+
+    /// <summary>언어 메뉴용 지구본 아이콘(흰색 선). 메뉴 폰트가 이모지를 흑백 두부로 그려서 직접 그린다.</summary>
+    private static Image CreateGlobeImage()
+    {
+        const int s = 16;
+        var bmp = new Bitmap(s, s);
+        var g = Graphics.FromImage(bmp);
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+
+        using var pen = new Pen(Color.White, s / 13f);
+
+        float m = s * 0.10f;
+        float d = s - 2 * m;
+        g.DrawEllipse(pen, m, m, d, d);                        // 외곽 원
+        g.DrawLine(pen, m, s / 2f, s - m, s / 2f);             // 적도
+
+        float meridianW = d * 0.42f;
+        g.DrawEllipse(pen, (s - meridianW) / 2f, m, meridianW, d); // 세로 자오선
+
+        float y1 = s * 0.32f, y2 = s * 0.68f, x1 = s * 0.24f, x2 = s * 0.76f;
+        g.DrawLine(pen, x1, y1, x2, y1);                       // 위도선
+        g.DrawLine(pen, x1, y2, x2, y2);
+
+        g.Dispose();
+        return bmp;
     }
 
     private static Icon CreateIcon()
